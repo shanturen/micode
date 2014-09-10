@@ -91,28 +91,45 @@ public:
 	buffer &get_buffer() { return _evt_read_buf; }
 };
 
-class thread_server : public server, public pthread
+class thread_server : public server, private pthread
 {
 	thread_pool _tp;
 
-	class thread_server_listener_handler {
-		
+	class listener_handler : public event_handler {
+		thread_server *_svr;
+	public:
+		int set_server(thread_server *svr) { _svr = svr; }
+		int handle_event(socket_event *se); // accept and register client event
 	};
 
-	class thread_server_task {
+	class client_task {
 		socket_event *_se;
+		thread_server *_svr;
 	public:
-		thread_server_taks() : se(0) {}
+		client_task() : se(0) {}
 		void set_socket_event(socket_event *se) { _se = se; }
+		void set_thread_server(thread_server *svr) { _svr = svr; }
 		int execute(worker *wkr) {
-			if (se->get_event_handler()->handle_event(se) < 0) {
-				// unregister se here
+			_svr->handle_client_event(se)
 			}
 		}
 	};
+
+	class client_event_handler : public event_handler
+	{
+		thread_server *_svr;
+	public:
+		client_server_handler(thread_server *svr) : _svr(svr) {}
+		void set_server(thread_server *svr) { _svr = svr; }
+		int handle_event(socket_event *se);
+	}
 public:
 	thread_server() {
 	}
+
+	// each thread server handle their client event differently,
+	// the method was called at worker thread.
+	virtual int handle_client_event(socket_event *se) = 0;
 
 	int start()
 	{

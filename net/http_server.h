@@ -8,6 +8,12 @@ class http_server : public thread_server
 {
 public:
 	typedef int (*path_handler)(const http_request *, response_writer *);
+
+	// read http request form se, 
+	// find the path_handler by url in request,
+	// call the handler
+	// done
+	int handle_client_event(socket_event *se);
 private:
 	class path_and_handler {
 	public:
