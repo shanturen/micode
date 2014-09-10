@@ -33,7 +33,7 @@ void event_manager::start_event_loop()
 					e->unregister();
 				}
 			} else {
-				LOG_INFO_VA("twice closure, because of u, i am afraied");
+				LOG_INFO_VA("twice close, what the fuck, tell me why");
 			}
 		}
 		close_expired_events();

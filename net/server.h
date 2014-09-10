@@ -12,7 +12,9 @@ static const int tcp_read_timeout = 1000;
 
 class server
 {
-	socket_event *_svr_listener;
+	address *_addr;
+	//socket_event *_svr_listener;
+	event_handler *_listener_handler;
 	event_manager _event_manager;
 	buffer _evt_read_buf;
 public:
@@ -28,31 +30,111 @@ public:
 	{
 		LOG_DEBUG_VA("destroy  server1");
 		/** _svr_listener release in _event_manager::~_event_manager
-		if (_svr_listener)
+		if (_svr_listener) // delegate the delete to event_manager
 			_event_manager.unregister_event(*_svr_listener);
 		*/
 		LOG_DEBUG_VA("destroy  server2");
 	}
 	
+	void set_listener_address(const address &addr)
+	{
+			_addr = addr;
+	}
+
+	/*
+	void set_listener_event(socket_event *evt)
+	{
+		_svr_listener = evt;
+	}
+	*/
+	void set_listener_handler(event_handler *eh)
+	{
+		_listener_handler = eh;
+		_listener_handler.set_server(this);
+	}
+
 	int add_client_socket_event(socket_event *se)
 	{
 		LOG_DEBUG_VA("add client event: %x", se);
 		return _event_manager.register_event(*se);
 	}
 
-	void set_listener_event(socket_event *evt)
+	int start()
 	{
-		_svr_listener = evt;
-	}
+		int svr_sock = socket(PF_INET, SOCK_STREAM, 0);
+		if (svr_sock < 0) {
+			LOG_ERROR_VA("create server socket failed");
+			return -1;
+		}
+		int flag = 1;
+		setsockopt(svr_sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
+		if (bind(svr_sock, &_addr, _addr.length()) < 0) {
+			LOG_ERROR_VA("bind address failed");
+			return -1;
+		}
+		
+		int sockflag = fcntl(svr_sock, F_GETFL, 0);
+		fcntl(svr_sock, F_SETFL, sockflag | O_NONBLOCK);
+		
+		if (listen(svr_sock, 100) < 0) {
+			LOG_ERROR_VA("listen failed");
+			return -1;
+		}
+		socket_event *listener = new socket_event(socket_event::read);
+		listener->set_handle(svr_sock);
+		listener->set_event_handler(_listener_handler);
 
-	int startup()
-	{
-		_event_manager.register_event(*_svr_listener);
+		_event_manager.register_event(listener)
 		_event_manager.start_event_loop();
 	}
 
 	buffer &get_buffer() { return _evt_read_buf; }
 };
+
+class thread_server : public server, public pthread
+{
+	thread_pool _tp;
+
+	class thread_server_listener_handler {
+		
+	};
+
+	class thread_server_task {
+		socket_event *_se;
+	public:
+		thread_server_taks() : se(0) {}
+		void set_socket_event(socket_event *se) { _se = se; }
+		int execute(worker *wkr) {
+			if (se->get_event_handler()->handle_event(se) < 0) {
+				// unregister se here
+			}
+		}
+	};
+public:
+	thread_server() {
+	}
+
+	int start()
+	{
+		return pthread::start();
+	}
+	
+	int wait()
+	{
+		return pthread::wait();
+	}
+	
+	int stop()
+	{
+		return pthread::kill();
+	}
+
+	thread_pool *get_thread_pool()
+	{
+		return &_tp;
+	}
+};
+
 
 class message_server;
 class message_read_event_handler : public read_event_handler
@@ -132,12 +214,12 @@ public:
 		server::startup();
 	}
 
-	int startup()
+	int start()
 	{
 		return pthread::start();
 	}
 	
-	int waitend()
+	int wait()
 	{
 		return pthread::wait();
 	}

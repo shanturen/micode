@@ -61,6 +61,7 @@ public:
 class thread_pool
 {
 	friend class worker;
+	
 	class pool_work_thread : public pthread
 	{
 		thread_pool *_tp;
