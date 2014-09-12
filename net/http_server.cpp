@@ -161,7 +161,7 @@ static inline bool drop_crlf(buffer &buf)
 
 int http_request::parse_request_line(buffer &buf, http_request &req)
 {
-
+	printf("buf:%s\n", (char *)buf.get_data_buf());
 	char cbuf[2048];
 	char sp = ' ';
 	int buf_len = buf.get_size();
@@ -198,10 +198,24 @@ int http_request::parse_request_line(buffer &buf, http_request &req)
 	}
 	buf.drain_data(cbuf, l);
 	cbuf[l] = '\0';
-	req.uri = string(cbuf);
+	req.version = string(cbuf);
 	
 	if (!drop_crlf(buf))
 		return -1;
+
+	size_t pos = req.uri.find("?");
+	if (pos == string::npos) {
+		req.path = req.uri;
+	} else {
+		req.path = req.uri.substr(0, pos);
+	}
+
+	printf("method : %s\n", req.method.c_str());
+	printf("uri : %s\n", req.uri.c_str());
+	printf("version : %s\n", req.version.c_str());
+	printf("path: %s\n", req.path.c_str());
+
+
 	return 0;
 }
 
@@ -220,7 +234,7 @@ int http_request::parse_header(buffer &buf, http_request &req)
 
 
 	p = (char *)buf.get_data_buf();
-	if (buf.get_size() > 2) {
+	if (buf.get_size() >= 2) {
 		if (*p == '\r' && *(p+1) == '\n') {
 			buf.drain_data(cbuf, 2);
 			return 0;
