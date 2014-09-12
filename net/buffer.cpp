@@ -86,3 +86,7 @@ int buffer::ensure_compacity(int size)
 	return 0;
 }
 
+int buffer::append_string(const std::string &s)
+{
+	return append_data((void *)(s.c_str()), s.size());
+}

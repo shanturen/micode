@@ -2,27 +2,10 @@
 
 #include "server.h"
 #include <vector>
-
-class http_server : public thread_server
-{
-public:
-	typedef int (*path_handler)(const http_request &, response_writer &);
-	typedef std::vector<path_and_handler> path_handler_vec_t;
-
-	// read http request form se, 
-	// find the path_handler by url in request,
-	// call the handler
-	// done
-	int handle_client_event(socket_event *se);
-private:
-	class path_and_handler {
-	public:
-		string path;
-		path_handler hdr
-	};
-	std::vector<path_and_handler> _path_handlers;
-	register_path_handler(const string &path, path_handler hdr);
-};
+#include <stdio.h>
+#include "buffer.h"
+#include <string>
+#include <map>
 
 class http_request
 {
@@ -37,17 +20,16 @@ public:
 	string header(const string &name);
 
 private:
-	std::map<string><string> _headers
+	std::map<std::string, std::string> _headers;
 	buffer _body_content;
 
 public:
 	// request parser 
-	typedef enum {parse_request_line = 0, parse_headers, parse_body, parse_ok, parse_fail} parse_state_t;
-	static bool parse_request(socket_event *se, http_request &req);
+	static bool parse_request(buffer &buf, http_request &req);
 	static bool read_request_buffer(socket_event *se, buffer &buf);
-	static int parse_request_line(buffer &buf, http_request *req); 
-	static int parse_header(buffer &buf, http_request *req);
-	static int parse_body(buffer &buf, http_request *req);
+	static int parse_request_line(buffer &buf, http_request &req);
+	static int parse_header(buffer &buf, http_request &req);
+	static int parse_body(buffer &buf, http_request &req);
 };
 
 class http_response
@@ -56,14 +38,62 @@ class http_response
 	// [header] CRLF
 	// CRLF
 	// [body]
+	string _version;
+	string _status;
+	string _phrase;
+	std::map<std::string, std::string> _headers;
+	buffer _body_buf;
+public:
+	friend class response_writer;
+	http_response() {
+		_version = "HTTP/1.1";
+		_status = "404";
+		_phrase= "not found";
+		set_header("Server", "mihttp 0.1");
+	}
+	void set_version(const string &version) { _version = version; }
+	void set_status(const string &st, const string &phrase)
+	{
+		_status = st;
+		_phrase = phrase;
+	}
+	void set_header(const string &name, const string &value)
+	{
+		_headers.insert(map<string, string>::value_type(name, value));
+	}
+	void set_body(const buffer &buf)
+	{
+		_body_buf = buf;
+		if (_body_buf.get_size() != 0) {
+			char cbuf[20];
+			sprintf(cbuf, "%d", _body_buf.get_size());
+			set_header("content-length", cbuf);
+		}
+	}
 };
 
 class response_writer
 {
 	socket_event *_se;
 public:
-	response_wirter(socket_event *se) :_se(se) {}
+	response_writer(socket_event *se) :_se(se) {}
 	int write(const http_response &r);
 };
 
-http_listener
+
+class http_server : public thread_server
+{
+	typedef int (*path_handler)(const http_request &, response_writer &);
+	class path_and_handler {
+	public:
+		string path;
+		path_handler hdr;
+	};
+	typedef std::vector<path_and_handler> path_handler_vec_t;
+
+	std::vector<path_and_handler> _path_handlers;
+
+public:
+	int handle_client_event(socket_event *se);
+	void register_path_handler(const string &path, path_handler hdr);
+};

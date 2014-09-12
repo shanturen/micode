@@ -7,6 +7,7 @@ void event_manager::start_event_loop()
 {
 	static int count = 0;
 	socket_event *e;
+	LOG_DEBUG_VA("getting event");
 	while (e = get_event()) {
 		LOG_DEBUG_VA("get event %x", e);
 		e->set_active_time(timee::now());

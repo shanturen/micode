@@ -12,14 +12,15 @@ int http_server::handle_client_event(socket_event *se)
 	}
 	http_request req;
 	
-	if (!http_request::parser_request(buf, req)) {
+	if (!http_request::parse_request(buf, req)) {
 		return -1;
 	}
+
 	http_server::path_handler_vec_t::iterator it;
 	for (it = _path_handlers.begin(); it != _path_handlers.end(); it++) {
-		if ((*it).path == req->path) {
-			response_writer wr(se)
-			(*it).second(*req, wr);
+		if ((*it).path == req.path) {
+			response_writer wr(se);
+			(*it).hdr(req, wr);
 			break;
 		}
 	}
@@ -29,12 +30,13 @@ int http_server::handle_client_event(socket_event *se)
 	}
 }
 
-static bool http_request::read_buffer(socket_event *se, buffer &buf)
+bool http_request::read_request_buffer(socket_event *se, buffer &buf)
 {
 	bool header_finished = false;
 	int header_max_size = 2048;
 	int n = 0;
 	do {
+		char c;
 		int ret = tcp_read_ms(se->get_handle(), &c, 1, 10);
 		if (ret == 1) {
 			buf.append_data(&c, 1);
@@ -45,26 +47,26 @@ static bool http_request::read_buffer(socket_event *se, buffer &buf)
 			return false;
 		}
 		if (buf.get_size() > 4) {
-			char *p = buf.get_data_buf();
+			char *p = (char *)buf.get_data_buf();
 			int l = buf.get_size();
-			header_finished = ( *(p+l-4) == '\r' && *(p+l-3) == '\n' *(p+l-2) == '\r' && *(p+l-1) == '\n' )
+			header_finished = (*(p+l-4) == '\r' && *(p+l-3) == '\n' && *(p+l-2) == '\r' && *(p+l-1) == '\n');
 		}
 	} while (!header_finished);
 
 	// get the length of body if present
 	string upstr;
 	int body_length = 0;
-	char *p = buf.get_data_buf();
+	char *p = (char *)buf.get_data_buf();
 	for (int i = 0; i !=  buf.get_size(); i++) {
 		upstr += tolower(*p++);
 	}
 
 	size_t pos = upstr.find("content-length:");
 	if (pos != string::npos) {
-		lenstr = upstr.substr(pos + 15);
+		string lenstr = upstr.substr(pos + 15);
 		size_t pos2 = lenstr.find("\r\n");
 		if (pos2 != string::npos) {
-			body_length = atoi(lenstr.substr(0, pos2));
+			body_length = atoi(lenstr.substr(0, pos2).c_str());
 		}
 	}
 
@@ -79,44 +81,45 @@ static bool http_request::read_buffer(socket_event *se, buffer &buf)
 	return true;
 }
 
-static bool http_request::parse_request(buffer &buf, http_request &req)
+bool http_request::parse_request(buffer &buf, http_request &req)
 {
 	// a simple, non-standart parse of http request
-	parse_state_t state = parse_request_line;
+	enum {state_request_line = 0, state_headers, state_body, state_ok, state_fail} state = state_request_line;
+	int ret = 0;
 
-	while (state != parse_ok && state != parse_fail) {
+	while (state != state_ok && state != state_fail) {
 		switch(state) {
-		case parse_request_line :
+		case state_request_line :
 			if (parse_request_line(buf, req) < 0) {
-				state = parse_fail;
+				state = state_fail;
 			} else {
-				state = parse_header;
+				state = state_headers;
 			}
-			break
-		case parse_header :
-			int ret = parse_header(buf, req);
+			break;
+		case state_headers :
+			ret = parse_header(buf, req);
 			if (ret < 0) {
-				state = parse_fail;
+				state = state_fail;
 			} else if (ret == 0) { // a empty line parsed
 				if (req.header("content-length") == "") {
-					state = parse_ok;
+					state = state_ok;
 				} else {
-					state = parse_body;
+					state = state_body;
 				}
 			}
-			break
-		case parse_body :
+			break;
+		case state_body :
 			//int len = atoi(req.header("Content-Length").cstr());
 			if (parse_body(buf, req) < 0) {
-				state = parse_ok;
+				state = state_ok;
 			} else {
-				state = parse_fail;
+				state = state_fail;
 			}
 			break;
 		}
 	}
 
-	if (state != parse_ok || buf->get_size() != 0) {
+	if (state != state_ok || buf.get_size() != 0) {
 		return false;
 	}
 
@@ -128,7 +131,7 @@ static void skip_sp(buffer &buf, char sp)
 	char cbuf[32];
 	int l = 0;
 	int buf_len = buf.get_size();
-	char *p = (char *)buf->get_data_buf();
+	char *p = (char *)buf.get_data_buf();
 	bool skiped = false;
 	
 
@@ -156,8 +159,9 @@ static inline bool drop_crlf(buffer &buf)
 	return true;
 }
 
-static int http_request::parse_request_line(buffer &buf, http_request *req)
+int http_request::parse_request_line(buffer &buf, http_request &req)
 {
+
 	char cbuf[2048];
 	char sp = ' ';
 	int buf_len = buf.get_size();
@@ -172,7 +176,7 @@ static int http_request::parse_request_line(buffer &buf, http_request *req)
 	}
 	buf.drain_data(cbuf, l);
 	cbuf[l] = '\0';
-	req->method = string(cbuf);
+	req.method = string(cbuf);
 
 	// uri
 	skip_sp(buf, ' ');
@@ -183,7 +187,7 @@ static int http_request::parse_request_line(buffer &buf, http_request *req)
 	}
 	buf.drain_data(cbuf, l);
 	cbuf[l] = '\0';
-	req->uri = string(cbuf);
+	req.uri = string(cbuf);
 
 	// version
 	skip_sp(buf, ' ');
@@ -194,7 +198,7 @@ static int http_request::parse_request_line(buffer &buf, http_request *req)
 	}
 	buf.drain_data(cbuf, l);
 	cbuf[l] = '\0';
-	req->uri = string(cbuf);
+	req.uri = string(cbuf);
 	
 	if (!drop_crlf(buf))
 		return -1;
@@ -208,14 +212,14 @@ static int http_request::parse_request_line(buffer &buf, http_request *req)
 // return 1 for general header
 // return 0 for empty line(\r\n)
 // return -1 for bad format
-static int http_request::parse_header(buffer &buf, http_request *req)
+int http_request::parse_header(buffer &buf, http_request &req)
 {
 	char cbuf[256];
 	char *p;
 	int l = 0;
 
 
-	p = buf.get_data_buf();
+	p = (char *)buf.get_data_buf();
 	if (buf.get_size() > 2) {
 		if (*p == '\r' && *(p+1) == '\n') {
 			buf.drain_data(cbuf, 2);
@@ -247,7 +251,7 @@ static int http_request::parse_header(buffer &buf, http_request *req)
 	cbuf[l] = '\0';
 	value = string(cbuf);
 
-	req->_headers.insert(map<string, string>::value_type(name, value));
+	req._headers.insert(map<string, string>::value_type(name, value));
 
 	if (!drop_crlf(buf))
 		return -1;
@@ -255,13 +259,13 @@ static int http_request::parse_header(buffer &buf, http_request *req)
 	return 1;
 }
 
-static int http_request::parse_body(buffer &buf, http_request *req)
+int http_request::parse_body(buffer &buf, http_request &req)
 {
-	int body_len = atoi(req->header("content-length"));
+	int body_len = atoi(req.header("content-length").c_str());
 	if (buf.get_size() != body_len){
 		return -1;
 	}
-	req->_body_content = buf;
+	req._body_content = buf;
 	return 0;
 }
 
@@ -272,4 +276,45 @@ string http_request::header(const string &name)
 		return it->second;
 	}
 	return "";
+}
+
+int response_writer::write(const http_response &r)
+{
+	buffer buf;
+
+	// status line
+	buf.append_string(r._version);
+	buf.append_string(" ");
+	buf.append_string(r._status);
+	buf.append_string(" ");
+	buf.append_string(r._phrase);
+	buf.append_string("\r\n");
+
+	// headers
+	for (map<string, string>::const_iterator it = r._headers.begin(); it != r._headers.end(); it++) {
+		buf.append_string(it->first);
+		buf.append_string(":");
+		buf.append_string(it->second);
+		buf.append_string("\r\n");
+	}
+	buf.append_string("\r\n");
+
+	// body
+	if (r._body_buf.get_size() > 0) {
+		buf.append_data(r._body_buf.get_data_buf(), r._body_buf.get_size());
+	}
+
+	int n = tcp_write_ms(_se->get_handle(), buf.get_data_buf(), buf.get_size(), 10);
+	if (n != buf.get_size()) {
+		return -1;
+	}
+	return n;
+}
+
+void http_server::register_path_handler(const string &path, path_handler hdr)
+{
+	path_and_handler ph;
+	ph.path = path;
+	ph.hdr = hdr;
+	_path_handlers.push_back(ph);
 }
