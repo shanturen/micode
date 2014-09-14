@@ -313,7 +313,7 @@ int response_writer::write(const http_response &r)
 	// headers
 	for (map<string, string>::const_iterator it = r._headers.begin(); it != r._headers.end(); it++) {
 		buf.append_string(it->first);
-		buf.append_string(":");
+		buf.append_string(": ");
 		buf.append_string(it->second);
 		buf.append_string("\r\n");
 	}

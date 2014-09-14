@@ -47,10 +47,11 @@ public:
 	friend class response_writer;
 	http_response() {
 		_version = "HTTP/1.1";
-		_status = "404";
-		_phrase= "not found";
+		_status = "200";
+		_phrase= "OK";
 		set_header("Server", "mihttp 0.1");
 		set_header("Content-Length", "0");
+		set_header("Connection", "keep-alive");
 	}
 	void set_version(const string &version) { _version = version; }
 	void set_status(const string &st, const string &phrase)
