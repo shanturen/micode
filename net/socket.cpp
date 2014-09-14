@@ -105,6 +105,7 @@ int tcp_read_ms(int fd, void *ptr1, int nbytes, int msecs)
 		nread = tcp_read(fd, ptr, nleft, tp);
 		if(nread < 0)
 		{
+			printf("read <= 0 %d\n", nread);
 			if((nread == -1) && (errno == EINTR))
 			{
 				goto again;
@@ -130,6 +131,7 @@ int tcp_read_ms(int fd, void *ptr1, int nbytes, int msecs)
 		}
 		else 
 		{
+			printf("read > 0 %d\n", nread);
 			ptr += nread;
 			nleft -= nread;
 		}
@@ -219,6 +221,32 @@ int tcp_read_ms(int sock, buffer &buf, int length, int msecs)
 	if (ret > 0) 
 		buf.set_used_size(ret);
 	return ret;
+}
+
+int tcp_read_ms_once(int sock, buffer &buf, int length, int msecs)
+{
+	buf.ensure_compacity(length);
+	buf.drain_all_data();
+
+	struct  timeval tv;
+	struct  timeval *tp;
+
+	if(msecs >= 0)
+	{
+		tv.tv_sec = msecs / 1000;
+		tv.tv_usec = (msecs % 1000) * 1000;
+		tp = &tv;
+	}
+	else
+	{
+		tp = NULL;
+	}
+
+	int nread = tcp_read(sock, buf.get_data_buf(), length, tp);
+	if (nread > 0)
+		buf.set_used_size(nread);
+	
+	return nread;
 }
 
 int send_msg(int sock, message &msg, int msecs)

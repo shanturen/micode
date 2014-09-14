@@ -44,4 +44,5 @@ public:
 int tcp_read_ms(int sock, void *data, int length, int msecs);
 int tcp_write_ms(int sock, const void *data, int length, int msecs);
 int tcp_read_ms(int sock, buffer &buf, int length, int msecs);
+int tcp_read_ms_once(int sock, buffer &buf, int length, int msecs);
 int check_alive(int sock);

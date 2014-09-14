@@ -9,10 +9,12 @@ using namespace std;
 int http_server::handle_client_event(socket_event *se)
 {
 	buffer buf;
+	timee t1 = timee::now();
 	if (!http_request::read_request_buffer(se, buf)) {
 		printf("read http request buffer error or client closed\n");
 		return -1;
 	}
+	printf("request read cost : %d us\n", timee::now() - t1);
 	http_request req;
 	
 	if (!http_request::parse_request(buf, req)) {
@@ -36,6 +38,62 @@ int http_server::handle_client_event(socket_event *se)
 	return 0;
 }
 
+bool http_request::read_request_buffer(socket_event *se, buffer &buf)
+{
+	int ret = tcp_read_ms_once(se->get_handle(), buf, 4096, 5);
+	printf("read %d of 4096\n", ret);
+	return ret > 0;
+
+	bool header_finished = false;
+	int header_max_size = 2048;
+	int n = 0;
+	do {
+		char c;
+		int ret = tcp_read_ms(se->get_handle(), &c, 1, 10);
+		if (ret == 1) {
+			buf.append_data(&c, 1);
+			if (++n == header_max_size) {
+				return false;
+			}
+		} else {
+			return false;
+		}
+		if (buf.get_size() > 4) {
+			char *p = (char *)buf.get_data_buf();
+			int l = buf.get_size();
+			header_finished = (*(p+l-4) == '\r' && *(p+l-3) == '\n' && *(p+l-2) == '\r' && *(p+l-1) == '\n');
+		}
+	} while (!header_finished);
+
+	// get the length of body if present
+	string upstr;
+	int body_length = 0;
+	char *p = (char *)buf.get_data_buf();
+	for (int i = 0; i !=  buf.get_size(); i++) {
+		upstr += tolower(*p++);
+	}
+
+	size_t pos = upstr.find("content-length:");
+	if (pos != string::npos) {
+		string lenstr = upstr.substr(pos + 15);
+		size_t pos2 = lenstr.find("\r\n");
+		if (pos2 != string::npos) {
+			body_length = atoi(lenstr.substr(0, pos2).c_str());
+		}
+	}
+
+	if (body_length != 0) {
+		buffer body_buf;
+		int n = tcp_read_ms(se->get_handle(), body_buf, body_length, 10);
+		if (n != body_length) {
+			return false;
+		}
+		buf.append_data(body_buf.get_data_buf(), n);
+	}
+	return true;
+}
+// too bad
+/*
 bool http_request::read_request_buffer(socket_event *se, buffer &buf)
 {
 	bool header_finished = false;
@@ -86,6 +144,7 @@ bool http_request::read_request_buffer(socket_event *se, buffer &buf)
 	}
 	return true;
 }
+*/
 
 bool http_request::parse_request(buffer &buf, http_request &req)
 {
