@@ -34,7 +34,7 @@ private:
 	static const int delayed_msecs = 2000;
 	void add_delayed_event(socket_event *evt)
 	{
-		LOG_INFO_VA("add delayed close event %x", evt);
+		LOG_INFO_VA("add delayed close event %x\n", evt);
 		evt->set_active_time(timee::now());
 		_delayed_close_events.push_back(evt);
 	}
@@ -42,13 +42,13 @@ private:
 	{
 		static int i = 0;
 		if (i++ % 10 == 0)
-			LOG_INFO_VA("%d delayed events in queue", _delayed_close_events.size());
+			LOG_INFO_VA("%d delayed events in queue\n", _delayed_close_events.size());
 
 		/*
 		while (!_delayed_close_events.empty()) {
 			socket_event *e = _delayed_close_events.front();
 			if (((timee::now() - e->get_active_time()) > (delayed_msecs * 1000) && (!(e->is_delayed())))) {
-				LOG_INFO_VA("delayed close client event %x", e);
+				LOG_INFO_VA("delayed close client event %x\n", e);
 				_delayed_close_events.pop();
 				e->unregister();
 			} else 
@@ -60,7 +60,7 @@ private:
 		for (int i = 0; i != n; i++) {
 			socket_event *e = *(_delayed_close_events.begin() + index);
 			if (!e->is_delayed()) {
-				LOG_INFO_VA("delayed close client event %x", e);
+				LOG_INFO_VA("delayed close client event %x\n", e);
 				_delayed_close_events.erase(_delayed_close_events.begin() + index);
 				e->unregister();
 				index--;

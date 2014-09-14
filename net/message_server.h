@@ -52,13 +52,13 @@ public:
 	{
 		int svr_sock = socket(PF_INET, SOCK_STREAM, 0);
 		if (svr_sock < 0) {
-			LOG_ERROR_VA("create server socket failed");
+			LOG_ERROR_VA("create server socket failed\n");
 			return -1;
 		}
 		int flag = 1;
 		setsockopt(svr_sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
 		if (bind(svr_sock, &_addr, _addr.length()) < 0) {
-			LOG_ERROR_VA("bind address failed");
+			LOG_ERROR_VA("bind address failed\n");
 			return -1;
 		}
 		
@@ -66,7 +66,7 @@ public:
 		fcntl(svr_sock, F_SETFL, sockflag | O_NONBLOCK);
 		
 		if (listen(svr_sock, 100) < 0) {
-			LOG_ERROR_VA("listen failed");
+			LOG_ERROR_VA("listen failed\n");
 			return -1;
 		}
 		socket_event *listener = new socket_event(socket_event::read);

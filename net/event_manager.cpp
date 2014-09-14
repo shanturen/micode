@@ -7,9 +7,9 @@ void event_manager::start_event_loop()
 {
 	static int count = 0;
 	socket_event *e;
-	LOG_DEBUG_VA("getting event");
+	LOG_DEBUG_VA("getting event\n");
 	while (e = get_event()) {
-		LOG_DEBUG_VA("get event %x", e);
+		LOG_DEBUG_VA("get event %x\n", e);
 		e->set_active_time(timee::now());
 		if (dispatch(e) < 0) {
 			// why can't directly unregister here:
@@ -29,12 +29,12 @@ void event_manager::start_event_loop()
 				e->unset_first();
 				if (e->is_delayed()) {
 					add_delayed_event(e);
-					LOG_DEBUG_VA("client close %x", e);
+					LOG_DEBUG_VA("client close %x\n", e);
 				} else {
 					e->unregister();
 				}
 			} else {
-				LOG_INFO_VA("twice close, what the fuck, tell me why");
+				LOG_INFO_VA("twice close, what the fuck, tell me why\n");
 			}
 		}
 		close_expired_events();

@@ -28,12 +28,12 @@ public:
 	//address &get_sock_address() { return _svr_addr; }
 	virtual ~server()
 	{
-		LOG_DEBUG_VA("destroy  server1");
+		LOG_DEBUG_VA("destroy  server1\n");
 		/** _svr_listener release in _event_manager::~_event_manager
 		if (_svr_listener) // delegate the delete to event_manager
 			_event_manager.unregister_event(*_svr_listener);
 		*/
-		LOG_DEBUG_VA("destroy  server2");
+		LOG_DEBUG_VA("destroy  server2\n");
 	}
 	
 	void set_listener_address(const address &addr)
@@ -55,22 +55,28 @@ public:
 
 	int add_client_socket_event(socket_event *se)
 	{
-		LOG_DEBUG_VA("add client event: %x", se);
+		LOG_DEBUG_VA("add client event: %x\n", se);
 		return _event_manager.register_event(*se);
+	}
+
+	int remove_client_socket_event(socket_event *se)
+	{
+		LOG_DEBUG_VA("add client event: %x\n", se);
+		return _event_manager.unregister_event(*se);
 	}
 
 	int start()
 	{
-		LOG_DEBUG_VA("server::start()\n");
+		LOG_DEBUG_VA("server::start()\n\n");
 		int svr_sock = socket(PF_INET, SOCK_STREAM, 0);
 		if (svr_sock < 0) {
-			LOG_ERROR_VA("create server socket failed");
+			LOG_ERROR_VA("create server socket failed\n");
 			return -1;
 		}
 		int flag = 1;
 		setsockopt(svr_sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int));
 		if (bind(svr_sock, &_addr, _addr.length()) < 0) {
-			LOG_ERROR_VA("bind address failed");
+			LOG_ERROR_VA("bind address failed\n");
 			return -1;
 		}
 		
@@ -78,7 +84,7 @@ public:
 		fcntl(svr_sock, F_SETFL, sockflag | O_NONBLOCK);
 		
 		if (listen(svr_sock, 100) < 0) {
-			LOG_ERROR_VA("listen failed");
+			LOG_ERROR_VA("listen failed\n");
 			return -1;
 		}
 		socket_event *listener = new socket_event(socket_event::read);
@@ -87,7 +93,7 @@ public:
 
 		_event_manager.register_event(*listener);
 
-		LOG_DEBUG_VA("server::start() event_manager start event loop\n");
+		LOG_DEBUG_VA("server::start() event_manager start event loop\n\n");
 		_event_manager.start_event_loop();
 	}
 
@@ -113,7 +119,9 @@ class thread_server : public server, private pthread
 		void set_socket_event(socket_event *se) { _se = se; }
 		void set_thread_server(thread_server *svr) { _svr = svr; }
 		int execute(worker *wkr) {
-			_svr->handle_client_event(_se);
+			if (_svr->handle_client_event(_se) < 0) {
+				_svr->remove_client_socket_event(_se);
+			}
 		}
 	};
 

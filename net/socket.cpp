@@ -15,7 +15,7 @@ static int tcp_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *excep
                 if (errno == EINTR) {
                         goto again;
                 }
-		LOG_ERROR_VA("select() call error : %d, %s", errno, strerror(errno));
+		LOG_ERROR_VA("select() call error : %d, %s\n", errno, strerror(errno));
         }
 
         if (val == 0) {
@@ -233,12 +233,12 @@ int recv_msg(int sock, message &msg, int msecs)
 	head msg_head;
 	int ret = tcp_read_ms(sock, &msg_head, sizeof(msg_head), msecs);
 	if (ret != sizeof(msg_head)) {
-		LOG_ERROR_VA("receive msg head error");
+		LOG_ERROR_VA("receive msg head error\n");
 		return -1;
 	}
 	msg_head.ntoh();
 
-	LOG_INFO_VA("msg head, cmd:%d, st:%d, len:%d, vr:%d", msg_head.command, msg_head.status, msg_head.length, msg_head.version);
+	LOG_INFO_VA("msg head, cmd:%d, st:%d, len:%d, vr:%d\n", msg_head.command, msg_head.status, msg_head.length, msg_head.version);
 	buffer buf;
 	if (tcp_read_ms(sock, buf, msg_head.length, msecs) != msg_head.length) {
 		return -1;
@@ -246,7 +246,7 @@ int recv_msg(int sock, message &msg, int msecs)
 
 	msg.set_head(msg_head);
 	if (msg.unmarshal(buf) != 0) {
-		LOG_ERROR_VA("unmarshal failed");
+		LOG_ERROR_VA("unmarshal failed\n");
 		return -1;
 	}
 	return (ret + msg_head.length);

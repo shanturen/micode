@@ -22,9 +22,9 @@ thread_pool::~thread_pool()
 	for (list<pthread *>::iterator it = _thread_list.begin(); it != _thread_list.end(); it++) {
 		pool_work_thread *_work_thread = static_cast<pool_work_thread *>(*it);
 		_work_thread->stop();
-		LOG_DEBUG_VA("wait thread end");
+		LOG_DEBUG_VA("wait thread end\n");
 		_work_thread->wait();
-		LOG_DEBUG_VA("thread ended");
+		LOG_DEBUG_VA("thread ended\n");
 		delete *it;
 	}
 
@@ -42,7 +42,7 @@ int thread_pool::add_task(task *tsk)
 		_thread_list.push_back(new_work_thread);
 		new_work_thread->start();
 		_number_of_work_threads++;
-		LOG_INFO_VA("new work thread started, total:%d, free:%d", _number_of_work_threads, _number_of_free_work_threads);
+		LOG_INFO_VA("new work thread started, total:%d, free:%d\n", _number_of_work_threads, _number_of_free_work_threads);
 	}
 	_task_event.signal();
 }
@@ -72,7 +72,7 @@ int worker::work()
 			delete tsk;
 		}
 	}
-	LOG_DEBUG_VA("worker stoped work");
+	LOG_DEBUG_VA("worker stoped work\n");
 }
 
 thread_pool::pool_work_thread::~pool_work_thread()

@@ -7,7 +7,7 @@ using namespace std;
 int event_manager_impl_epoll::wait_for_events()
 {
 	epoll_event evs[256];
-	LOG_INFO_VA("epoll %d wait for event...", _epfd);
+	LOG_INFO_VA("epoll %d wait for event...\n", _epfd);
 	int n = 0;
 	do {
 		n = epoll_wait(_epfd, evs, 256, -1);
@@ -20,25 +20,25 @@ int event_manager_impl_epoll::wait_for_events()
 	} while (1);
 
 
-	LOG_INFO_VA("epoll %d get %d events", _epfd, n);
+	LOG_INFO_VA("epoll %d get %d events\n", _epfd, n);
 	for (int i = 0; i != n; i++) {
 		int slot = evs[i].data.fd;
 		socket_event *e = _event_pool.find_by_slot(slot);
 		if (!e) {
-			LOG_INFO_VA("find event from event-pool error, at slot %d", slot);
+			LOG_INFO_VA("find event from event-pool error, at slot %d\n", slot);
 	//		return 0;
 		}
 		if (evs[i].events & EPOLLIN) {
-			LOG_INFO_VA("EPOLLIN");
+			LOG_INFO_VA("EPOLLIN\n");
 		}
 		if (evs[i].events & EPOLLOUT) {
-			LOG_INFO_VA("EPOLLOUT");
+			LOG_INFO_VA("EPOLLOUT\n");
 		}
 		if (evs[i].events & EPOLLERR) {
-			LOG_INFO_VA("EPOLLERR");
+			LOG_INFO_VA("EPOLLERR\n");
 		}
 		if (evs[i].events & EPOLLHUP) {
-			LOG_INFO_VA("EPOLLHUP");
+			LOG_INFO_VA("EPOLLHUP\n");
 		}
 		/*
 		if (evs[i].events & EPOLLRDHUP) {
@@ -80,7 +80,7 @@ int event_pool::insert(socket_event *e)
 	_slot_use_marks[_number_of_used_slots] = slot;
 	_mark_index_of_slot[slot] = _number_of_used_slots;
 	_number_of_used_slots++;
-	LOG_INFO_VA("[event_pool] used slots:%d", _number_of_used_slots);
+	LOG_INFO_VA("[event_pool] used slots:%d\n", _number_of_used_slots);
 	return 0;
 }
 
@@ -117,7 +117,7 @@ int event_manager_impl_epoll::register_event(socket_event &e)
 	if (e.get_type() == socket_event::error)
 		ee.events |= EPOLLERR;
 
-	LOG_INFO_VA("epoll %d add sock %d at slot %d", _epfd, e.get_handle(), ee.data.fd);
+	LOG_INFO_VA("epoll %d add sock %d at slot %d\n", _epfd, e.get_handle(), ee.data.fd);
 	if (epoll_ctl(_epfd, op, e.get_handle(), &ee) != 0)
 		return -1;
 	_event_pool.insert(&e);
@@ -137,14 +137,14 @@ int event_manager_impl_epoll::unregister_event(socket_event &e)
 		ee.events &= (~EPOLLOUT);
 	if (e.get_type() == socket_event::error)
 		ee.events &= (~EPOLLERR);
-	LOG_INFO_VA("epoll %d del sock %d at slot %d", _epfd, e.get_handle(), slot);
+	LOG_INFO_VA("epoll %d del sock %d at slot %d\n", _epfd, e.get_handle(), slot);
 	if (epoll_ctl(_epfd, op, e.get_handle(), &ee) < 0) {
-		LOG_ERROR_VA("epoll_ctl failed");
+		LOG_ERROR_VA("epoll_ctl failed\n");
 		return -1;
 	}
 	_event_pool.remove(&e);
 	
-	LOG_INFO_VA("delete event sock %d at slot %d", e.get_handle(), slot);
+	LOG_INFO_VA("delete event sock %d at slot %d\n", e.get_handle(), slot);
 	delete &e;
 	return 0;
 }
@@ -157,7 +157,7 @@ socket_event *event_manager_impl_epoll::get_event()
 	}
 	socket_event *evt = _ready_events.front();
 	if (!evt) { 
-		LOG_ERROR_VA("bad design");
+		LOG_ERROR_VA("bad design\n");
 		return 0;
 	}
 	_ready_events.pop();

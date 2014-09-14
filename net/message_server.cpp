@@ -11,17 +11,17 @@ int listener_handler::read(socket_event *se)
 			if ((errno == EAGAIN || errno == EWOULDBLOCK)) {
 				return 3103;
 			} else {
-				LOG_ERROR_VA("accept error");
+				LOG_ERROR_VA("accept error\n");
 				return -1;
 			}
 		}
-		LOG_INFO_VA("accept <%s,%d>", addr.ip().c_str(), addr.port());
+		LOG_INFO_VA("accept <%s,%d>\n\n", addr.ip().c_str(), addr.port());
 		socket_event *client_sock_event = new socket_event(socket_event::read);
 		client_sock_event->set_handle(sock);
 		client_sock_event->set_event_handler(new message_read_event_handler(_svr));
 		if (_svr->add_client_socket_event(client_sock_event) != 0) {
 			delete client_sock_event;
-			LOG_ERROR_VA("add client error, maybe event-pool full");
+			LOG_ERROR_VA("add client error, maybe event-pool full\n");
 		}
 	}
 	return 3103;
@@ -30,25 +30,25 @@ int listener_handler::read(socket_event *se)
 int message_read_event_handler::read(socket_event *se)
 {
 	error_response_message emsg;
-	LOG_INFO_VA("new request message coming in...");
+	LOG_INFO_VA("new request message coming in...\n");
 	head msg_head;
 	int sock = se->get_handle();
 	int ret = tcp_read_ms(sock, &msg_head, sizeof(msg_head), tcp_read_timeout);
 	if (ret <= 0) {
-		LOG_INFO_VA("read head error or client closed");
+		LOG_INFO_VA("read head error or client closed\n");
 		return ret;
 	}
 	if (ret != sizeof(msg_head)) {
-		LOG_ERROR_VA("bad request, refused to service");
+		LOG_ERROR_VA("bad request, refused to service\n");
 		return -1;
 	}
 	msg_head.ntoh();
-	LOG_DEBUG_VA("likly msg head, cmd:%d, vr:%d, src:%d, st:%d, len:%d, sn:%llu-%llu", 
+	LOG_DEBUG_VA("likly msg head, cmd:%d, vr:%d, src:%d, st:%d, len:%d, sn:%llu-%llu\n\n", 
 	msg_head.command, msg_head.version, msg_head.src, msg_head.status, msg_head.length, msg_head.sn_high, msg_head.sn_low);
 
 	message_builder_base *msg_builder = _svr->find_message_builder(msg_head.command);
 	if (!msg_builder) {
-		LOG_ERROR_VA("unsupporeted message command %d", msg_head.command);
+		LOG_ERROR_VA("unsupporeted message command %d\n\n", msg_head.command);
 		emsg.set_error_str("bad msg format");
 		send_msg(se->get_handle(), emsg);
 		return -1;
@@ -57,7 +57,7 @@ int message_read_event_handler::read(socket_event *se)
 	buffer &buf = _svr->get_buffer();
 	ret = tcp_read_ms(sock, buf, msg_head.length, tcp_read_timeout);
 	if (ret != msg_head.length) {
-		LOG_ERROR_VA("message body receive failed, recv:%d bytes, expect:%d, maybe bad format",
+		LOG_ERROR_VA("message body receive failed, recv:%d bytes, expect:%d, maybe bad format\n\n",
 		ret, msg_head.length);
 		emsg.set_error_str("bad msg body length");
 		send_msg(se->get_handle(), emsg);
@@ -68,23 +68,23 @@ int message_read_event_handler::read(socket_event *se)
 	//message *msg = _svr.get_message_builder()->build_message(msg_head, buf);
 	message *msg = msg_builder->build_message(msg_head, buf);
 	if (!msg) {
-		LOG_ERROR_VA("message unmarshal failed");
+		LOG_ERROR_VA("message unmarshal failed\n");
 		emsg.set_error_str("bad msg body");
 		send_msg(se->get_handle(), emsg);
 		return -1;
 	}
 	msg->set_socket_event(se);
 	task *tsk = new msg_handle_task(msg);
-	LOG_DEBUG_VA("create msg task for msg %d", msg->get_id());
+	LOG_DEBUG_VA("create msg task for msg %d\n\n", msg->get_id());
 	tsk->start(_svr->get_thread_pool());
 	return 3103;
 }
 
 message_server::~message_server()
 {
-	LOG_DEBUG_VA("destroy message_server");
+	LOG_DEBUG_VA("destroy message_server\n");
 	for(std::map<int, message_builder_base *>::iterator it = _msg_builder_map.begin(); it != _msg_builder_map.end(); it++) {
 		delete it->second;
 	}
-	LOG_DEBUG_VA("destroyed message_server");
+	LOG_DEBUG_VA("destroyed message_server\n");
 }

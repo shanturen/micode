@@ -156,7 +156,7 @@ public:
 	virtual int response(worker *wrk_env) = 0;
 	int response_error(const string &str_err, int code = -1)
 	{
-		LOG_INFO_VA("error response : %s", str_err.c_str());
+		LOG_INFO_VA("error response : %s\n", str_err.c_str());
 		octet_ostream ots;
 		set_status(-1);
 		set_type(1);
@@ -237,7 +237,7 @@ public:
 		msg_type *msg = new msg_type();
 		msg->set_head(msg_head);
 		if (msg->unmarshal(buf) != 0) {
-			LOG_ERROR_VA("messsage unmarshal failed");
+			LOG_ERROR_VA("messsage unmarshal failed\n");
 			delete msg;
 			return 0;
 		}

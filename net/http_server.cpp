@@ -4,15 +4,19 @@
 
 using namespace std;
 
+// -1 on non-http request or client close
+// 0 on ok or logical error
 int http_server::handle_client_event(socket_event *se)
 {
 	buffer buf;
 	if (!http_request::read_request_buffer(se, buf)) {
+		printf("read http request buffer error or client closed\n");
 		return -1;
 	}
 	http_request req;
 	
 	if (!http_request::parse_request(buf, req)) {
+		printf("bad http request format\n");
 		return -1;
 	}
 
@@ -28,6 +32,8 @@ int http_server::handle_client_event(socket_event *se)
 	if (it == _path_handlers.end()) {
 		return -1;
 	}
+
+	return 0;
 }
 
 bool http_request::read_request_buffer(socket_event *se, buffer &buf)
