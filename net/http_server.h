@@ -50,6 +50,7 @@ public:
 		_status = "404";
 		_phrase= "not found";
 		set_header("Server", "mihttp 0.1");
+		set_header("Content-Length", "0");
 	}
 	void set_version(const string &version) { _version = version; }
 	void set_status(const string &st, const string &phrase)
@@ -67,7 +68,7 @@ public:
 		if (_body_buf.get_size() != 0) {
 			char cbuf[20];
 			sprintf(cbuf, "%d", _body_buf.get_size());
-			set_header("content-length", cbuf);
+			set_header("Content-Length", cbuf);
 		}
 	}
 };

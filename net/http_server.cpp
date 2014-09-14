@@ -318,6 +318,8 @@ int response_writer::write(const http_response &r)
 		buf.append_data(r._body_buf.get_data_buf(), r._body_buf.get_size());
 	}
 
+	printf("write : %s\n", (char *)buf.get_data_buf());
+
 	int n = tcp_write_ms(_se->get_handle(), buf.get_data_buf(), buf.get_size(), 10);
 	if (n != buf.get_size()) {
 		return -1;
