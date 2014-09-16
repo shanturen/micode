@@ -7,16 +7,16 @@ void event_manager::start_event_loop()
 {
 	static int count = 0;
 	socket_event *e;
-	LOG_DEBUG_VA("getting event\n");
+	//LOG_DEBUG_VA("getting event\n");
 	while (e = get_event()) {
-		LOG_DEBUG_VA("get event %x\n", e);
+		//LOG_DEBUG_VA("get event %x\n", e);
 		e->set_active_time(timee::now());
 		if (dispatch(e) < 0) {
 			// why can't directly unregister here:
 			//  when client close the socket(timeout, or net error, or with no reason), 
 			//  some msg_handle_task may running on this event, dce-framework was 
 			//  designed so weak that it requires this socket_event alive during 
-			//  the task processing, unregister(delete) this event soon(while tsk running) 
+			//  the task processing, unregister(delete) this event soon(while tsk running)
 			//  may cause program crash
 			//e->set_client_closed();
 			//e->unregister();

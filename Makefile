@@ -5,7 +5,7 @@ subdirs= net
 INCLUDE= -I./ 
 LIBRARY= -lpthread
 STATIC_LIB= net/libdce.a
-CPPFLAGS+=-g 
+CPPFLAGS+= -O2
 all : $(target)
 
 

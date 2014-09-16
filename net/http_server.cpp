@@ -9,12 +9,12 @@ using namespace std;
 int http_server::handle_client_event(socket_event *se)
 {
 	buffer buf;
-	timee t1 = timee::now();
+	//timee t1 = timee::now();
 	if (!http_request::read_request_buffer(se, buf)) {
 		printf("read http request buffer error or client closed\n");
 		return -1;
 	}
-	printf("request read cost : %d us\n", timee::now() - t1);
+	//printf("request read cost : %d us\n", timee::now() - t1);
 	http_request req;
 	
 	if (!http_request::parse_request(buf, req)) {
@@ -41,7 +41,7 @@ int http_server::handle_client_event(socket_event *se)
 bool http_request::read_request_buffer(socket_event *se, buffer &buf)
 {
 	int ret = tcp_read_ms_once(se->get_handle(), buf, 4096, 5);
-	printf("read %d of 4096\n", ret);
+	//printf("read %d of 4096\n", ret);
 	return ret > 0;
 
 	bool header_finished = false;
@@ -226,7 +226,7 @@ static inline bool drop_crlf(buffer &buf)
 
 int http_request::parse_request_line(buffer &buf, http_request &req)
 {
-	printf("buf:%s\n", (char *)buf.get_data_buf());
+	//printf("buf:%s\n", (char *)buf.get_data_buf());
 	char cbuf[2048];
 	char sp = ' ';
 	int buf_len = buf.get_size();
@@ -275,10 +275,10 @@ int http_request::parse_request_line(buffer &buf, http_request &req)
 		req.path = req.uri.substr(0, pos);
 	}
 
-	printf("method : %s\n", req.method.c_str());
-	printf("uri : %s\n", req.uri.c_str());
-	printf("version : %s\n", req.version.c_str());
-	printf("path: %s\n", req.path.c_str());
+	//printf("method : %s\n", req.method.c_str());
+	//printf("uri : %s\n", req.uri.c_str());
+	//printf("version : %s\n", req.version.c_str());
+	//printf("path: %s\n", req.path.c_str());
 
 
 	return 0;
@@ -359,6 +359,8 @@ string http_request::header(const string &name)
 
 int response_writer::write(const http_response &r)
 {
+
+	printf("t1 + %d + %d\n", _se->t2 - _se->t1, _se->t3 - _se->t2);
 	buffer buf;
 
 	// status line
@@ -383,7 +385,7 @@ int response_writer::write(const http_response &r)
 		buf.append_data(r._body_buf.get_data_buf(), r._body_buf.get_size());
 	}
 
-	printf("write : %s\n", (char *)buf.get_data_buf());
+	//printf("write : %s\n", (char *)buf.get_data_buf());
 
 	int n = tcp_write_ms(_se->get_handle(), buf.get_data_buf(), buf.get_size(), 10);
 	if (n != buf.get_size()) {

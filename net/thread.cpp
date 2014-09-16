@@ -12,7 +12,7 @@ int task::start(thread_pool *tp)
 thread_pool::thread_pool()
 {
 	_worker = 0;
-	_max_number_of_threads = 1;
+	_max_number_of_threads = 4;
 	_number_of_free_work_threads = 0;
 	_number_of_work_threads = 0;
 }

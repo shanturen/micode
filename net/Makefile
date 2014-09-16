@@ -4,7 +4,7 @@ libs =
 subdirs= 
 INCLUDE= -I./ -I../log/include/
 LIBRARY= -lpthread 
-CPPFLAGS+=-g 
+CPPFLAGS+= -O2
 all : $(target)
 
 
@@ -13,7 +13,7 @@ objs=$(patsubst %.cpp, %.o, $(srcs))
 all : $(target)
 
 $(target) : $(objs) 
-	for dir in $(subdirs); do make -C $(dir) ; done
+	for dir in $(subdirs); do make -C $$dir ; done
 	ar cr $(target) $^ $(libs)
 
 %.o : %.cpp

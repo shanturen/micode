@@ -2,12 +2,13 @@
 #include <iostream>
 #include "log.h"
 #include "server.h"
+#include "timewrap.h"
 using namespace std;
 
 int event_manager_impl_epoll::wait_for_events()
 {
 	epoll_event evs[256];
-	LOG_INFO_VA("epoll %d wait for event...\n", _epfd);
+	//LOG_INFO_VA("epoll %d wait for event...\n", _epfd);
 	int n = 0;
 	do {
 		n = epoll_wait(_epfd, evs, 256, -1);
@@ -20,7 +21,7 @@ int event_manager_impl_epoll::wait_for_events()
 	} while (1);
 
 
-	LOG_INFO_VA("epoll %d get %d events\n", _epfd, n);
+	//LOG_INFO_VA("epoll %d get %d events\n", _epfd, n);
 	for (int i = 0; i != n; i++) {
 		int slot = evs[i].data.fd;
 		socket_event *e = _event_pool.find_by_slot(slot);
@@ -28,6 +29,7 @@ int event_manager_impl_epoll::wait_for_events()
 			LOG_INFO_VA("find event from event-pool error, at slot %d\n", slot);
 	//		return 0;
 		}
+		/*
 		if (evs[i].events & EPOLLIN) {
 			LOG_INFO_VA("EPOLLIN\n");
 		}
@@ -40,6 +42,7 @@ int event_manager_impl_epoll::wait_for_events()
 		if (evs[i].events & EPOLLHUP) {
 			LOG_INFO_VA("EPOLLHUP\n");
 		}
+		*/
 		/*
 		if (evs[i].events & EPOLLRDHUP) {
 			cout << "EPOLLRDHUP, " ;
@@ -47,6 +50,7 @@ int event_manager_impl_epoll::wait_for_events()
 			close(evs[i].data.fd);
 		}
 		*/
+		e->t1 = timee::now();
 		_ready_events.push(e);
 	}
 	return n;
@@ -80,7 +84,7 @@ int event_pool::insert(socket_event *e)
 	_slot_use_marks[_number_of_used_slots] = slot;
 	_mark_index_of_slot[slot] = _number_of_used_slots;
 	_number_of_used_slots++;
-	LOG_INFO_VA("[event_pool] used slots:%d\n", _number_of_used_slots);
+	//LOG_INFO_VA("[event_pool] used slots:%d\n", _number_of_used_slots);
 	return 0;
 }
 
@@ -117,7 +121,7 @@ int event_manager_impl_epoll::register_event(socket_event &e)
 	if (e.get_type() == socket_event::error)
 		ee.events |= EPOLLERR;
 
-	LOG_INFO_VA("epoll %d add sock %d at slot %d\n", _epfd, e.get_handle(), ee.data.fd);
+	//LOG_INFO_VA("epoll %d add sock %d at slot %d\n", _epfd, e.get_handle(), ee.data.fd);
 	if (epoll_ctl(_epfd, op, e.get_handle(), &ee) != 0)
 		return -1;
 	_event_pool.insert(&e);
@@ -137,14 +141,14 @@ int event_manager_impl_epoll::unregister_event(socket_event &e)
 		ee.events &= (~EPOLLOUT);
 	if (e.get_type() == socket_event::error)
 		ee.events &= (~EPOLLERR);
-	LOG_INFO_VA("epoll %d del sock %d at slot %d\n", _epfd, e.get_handle(), slot);
+	//LOG_INFO_VA("epoll %d del sock %d at slot %d\n", _epfd, e.get_handle(), slot);
 	if (epoll_ctl(_epfd, op, e.get_handle(), &ee) < 0) {
 		LOG_ERROR_VA("epoll_ctl failed\n");
 		return -1;
 	}
 	_event_pool.remove(&e);
 	
-	LOG_INFO_VA("delete event sock %d at slot %d\n", e.get_handle(), slot);
+	//LOG_INFO_VA("delete event sock %d at slot %d\n", e.get_handle(), slot);
 	delete &e;
 	return 0;
 }

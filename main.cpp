@@ -6,7 +6,7 @@ using namespace std;
 int hello_handler(const http_request &req, response_writer &w)
 {
 	http_response r;
-	cout << "the handler called" << endl;
+	//cout << "the handler called" << endl;
 	w.write(r);
 	return 0;
 }

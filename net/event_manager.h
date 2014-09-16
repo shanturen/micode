@@ -41,8 +41,9 @@ private:
 	void close_expired_events()
 	{
 		static int i = 0;
-		if (i++ % 10 == 0)
-			LOG_INFO_VA("%d delayed events in queue\n", _delayed_close_events.size());
+
+		// if (i++ % 10 == 0)
+		//	LOG_INFO_VA("%d delayed events in queue\n", _delayed_close_events.size());
 
 		/*
 		while (!_delayed_close_events.empty()) {

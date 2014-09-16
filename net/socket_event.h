@@ -3,6 +3,7 @@
 #include "socket.h"
 #include "thread.h"
 #include "timewrap.h"
+#include "timewrap.h"
 
 class event_manager;
 class event_manager_impl;
@@ -42,6 +43,12 @@ public:
 	bool is_first() { return _is_first_closure; }
 	event_manager *get_event_manager() { return _event_manager; }
 	int unregister();
+
+	// for performance watch
+	timee t1;
+	timee t2;
+	timee t3;
+	timee t4;
 private:
 	event_type_t _type;
 	int _slot;
