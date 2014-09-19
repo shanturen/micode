@@ -72,6 +72,8 @@ public:
 			set_header("Content-Length", cbuf);
 		}
 	}
+
+
 };
 
 class response_writer

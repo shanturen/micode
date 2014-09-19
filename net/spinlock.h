@@ -20,3 +20,10 @@ public:
 	}
 };
 
+template <class T>
+class locker {
+	T &_t;
+public:
+	locker(T &t) : _t(t) {_t.lock();}
+	~locker() { _t.unlock(); }
+}
