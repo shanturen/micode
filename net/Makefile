@@ -1,4 +1,4 @@
-target = libdce.a
+target = libmihttp.a
 srcs = buffer.cpp event_manager.cpp event_manager_impl_epoll.cpp thread.cpp server.cpp socket.cpp socket_event.cpp message.cpp safe_time.cpp http_server.cpp
 libs = 
 subdirs= 

@@ -26,4 +26,4 @@ class locker {
 public:
 	locker(T &t) : _t(t) {_t.lock();}
 	~locker() { _t.unlock(); }
-}
+};
