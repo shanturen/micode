@@ -1,6 +1,7 @@
 #include "http_server.h"
 #include <stdlib.h>
 #include <ctype.h>
+#include "url.h"
 
 using namespace std;
 
@@ -11,14 +12,19 @@ int http_server::handle_client_event(socket_event *se)
 	buffer buf;
 	//timee t1 = timee::now();
 	if (!http_request::read_request_buffer(se, buf)) {
-		printf("read http request buffer error or client closed\n");
+		//printf("read http request buffer error or client closed\n");
 		return -1;
 	}
 	//printf("request read cost : %d us\n", timee::now() - t1);
 	http_request req;
 	
 	if (!http_request::parse_request(buf, req)) {
-		printf("bad http request format\n");
+		//printf("bad http request format\n");
+		return -1;
+	}
+
+	if (!req.parse_form()) {
+		//printf("http request parse form failed\n");
 		return -1;
 	}
 
@@ -31,7 +37,15 @@ int http_server::handle_client_event(socket_event *se)
 		}
 	}
 
+//	se->t4 = timee::now();
+//	printf("t1 + %d + %d + %d\n", se->t2 - se->t1, se->t3 - se->t2, se->t4 - se->t3);
+
 	if (it == _path_handlers.end()) {
+		return -1;
+	}
+
+	// close if client need no keep-alive, 
+	if (req.header("connection") != "keep-alive") {
 		return -1;
 	}
 
@@ -43,12 +57,8 @@ bool http_request::read_request_buffer(socket_event *se, buffer &buf)
 	int ret = tcp_read_ms_once(se->get_handle(), buf, 4096, 5);
 	//printf("read %d of 4096\n", ret);
 	return ret > 0;
-}
 
-// too bad
-/*
-bool http_request::read_request_buffer(socket_event *se, buffer &buf)
-{
+	// can't stand the low performance
 	bool header_finished = false;
 	int header_max_size = 2048;
 	int n = 0;
@@ -97,7 +107,6 @@ bool http_request::read_request_buffer(socket_event *se, buffer &buf)
 	}
 	return true;
 }
-*/
 
 bool http_request::parse_request(buffer &buf, http_request &req)
 {
@@ -129,9 +138,9 @@ bool http_request::parse_request(buffer &buf, http_request &req)
 		case state_body :
 			//int len = atoi(req.header("Content-Length").cstr());
 			if (parse_body(buf, req) < 0) {
-				state = state_ok;
-			} else {
 				state = state_fail;
+			} else {
+				state = state_ok;
 			}
 			break;
 		}
@@ -226,20 +235,13 @@ int http_request::parse_request_line(buffer &buf, http_request &req)
 		req.path = req.uri;
 	} else {
 		req.path = req.uri.substr(0, pos);
+		req.query = req.uri.substr(pos+1);
 	}
-
-	//printf("method : %s\n", req.method.c_str());
-	//printf("uri : %s\n", req.uri.c_str());
-	//printf("version : %s\n", req.version.c_str());
-	//printf("path: %s\n", req.path.c_str());
-
 
 	return 0;
 }
 
-// token:what ever value\r\n 
-// or
-// \r\n
+// token:[what ever value]\r\n 
 //
 // return 1 for general header
 // return 0 for empty line(\r\n)
@@ -273,6 +275,7 @@ int http_request::parse_header(buffer &buf, http_request &req)
 	}
 	name = string(cbuf);
 	skip_sp(buf, ':');
+	skip_sp(buf, ' ');
 
 	p = (char *)buf.get_data_buf();
 	for (l = 0; *p++ != '\r' && l != buf.get_size() && l != 256; l++);
@@ -298,22 +301,123 @@ int http_request::parse_body(buffer &buf, http_request &req)
 		return -1;
 	}
 	req._body_content = buf;
+	buf.drain_all_data();
 	return 0;
 }
 
-string http_request::header(const string &name)
+string http_request::header(const string &name) const
 {
-	map<string, string>::iterator it = _headers.find(name);
+	map<string, string>::const_iterator it = _headers.find(name);
 	if (it != _headers.end()) {
 		return it->second;
 	}
 	return "";
 }
 
+string http_request::form(const string &name) const
+{
+	map<string, string>::const_iterator it = _form_datas.find(name);
+	if (it != _form_datas.end()) {
+		return it->second;
+	}
+	return "";
+}
+
+bool http_request::parse_form()
+{
+	const char *data = 0;
+	int size = 0;
+	char buf[4096];
+	string key, value;
+	if (this->method == "GET") {
+		if (this->query.empty())
+			return true;
+		data = this->query.c_str();
+		size = this->query.size();
+	}
+
+	if (this->method == "POST" && this->header("content-type") == "application/x-www-form-urlencoded") {
+		if (this->_body_content.get_size() == 0)
+			return true;
+		data = (const char *)(this->_body_content.get_data_buf());
+		size = this->_body_content.get_size();
+		//printf("form data: %s\n", data);
+	}
+
+	char k_or_v = 'k';
+	int i = 0, bi = 0;
+	// data = "k1=v1&k2=v2" with size long 
+	// valid format : &&k=v&k=&&&k=
+	for (i = 0; i != size; i++) {
+		if (k_or_v == 'k') {
+			if (data[i] == '&') {
+				if (bi == 0) 
+					continue; // ignore the &
+				else {
+					break;
+				}
+			} else if (data[i] == '=') {
+				if (bi == 0) {
+					break;
+				} else {
+					key = string(buf, buf + bi);
+					k_or_v = 'v';
+					bi = 0;
+				}
+			} else {
+				buf[bi++] = data[i];
+			}
+		} else if (k_or_v == 'v') { // v
+			if (data[i] == '&') {
+				if (bi != 0) {
+					value = string(buf, buf + bi);
+				} else {
+					value = "";
+				}
+				k_or_v = 'k';		
+				bi = 0;
+				insert_form_data_if_not_exist(key, value);
+			} else if (data[i] == '=') {
+				break;
+			} else {
+				buf[bi++] = data[i];
+			}
+		} else {
+			break;
+		}
+	}
+
+	if (i != size)
+		return false;
+
+	// for the last k=v
+	if (k_or_v == 'v') {
+		if (bi == 0) {
+			value = "";
+		} else {
+			value = string(buf, buf + bi);
+			insert_form_data_if_not_exist(key, value);
+		}
+	} else { // k=v&...k=v&kkkkkkkkk
+		return false;
+	}
+
+	/*
+	for (map<string, string>::const_iterator it = _form_datas.begin(); it != _form_datas.end(); it++) {
+		printf("%s=%s\n", it->first.c_str(), it->second.c_str());
+	}
+	*/
+	return true;
+}
+
+void http_request::insert_form_data_if_not_exist(const string &k, const string &v)
+{
+	if (_form_datas.find(URLDecode(k)) == _form_datas.end())
+		_form_datas.insert(map<string, string>::value_type(URLDecode(k), URLDecode(v)));
+}
+
 int response_writer::write(const http_response &r)
 {
-
-	printf("t1 + %d + %d\n", _se->t2 - _se->t1, _se->t3 - _se->t2);
 	buffer buf;
 
 	// status line
@@ -330,6 +434,7 @@ int response_writer::write(const http_response &r)
 		buf.append_string(": ");
 		buf.append_string(it->second);
 		buf.append_string("\r\n");
+		//printf("write header, %s : %s\n", it->first.c_str(), it->second.c_str());
 	}
 	buf.append_string("\r\n");
 

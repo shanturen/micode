@@ -13,6 +13,7 @@ static const int tcp_read_timeout = 1000;
 
 class server
 {
+protected:
 	address _addr;
 	//socket_event *_svr_listener;
 	event_handler *_listener_handler;
@@ -22,7 +23,7 @@ public:
 	server() : _event_manager(new event_manager_impl_epoll())
 	{
 		_listener_handler = 0;
-		_event_manager.set_server(this);
+		//_event_manager.set_server(this);
 		
 	}
 	//int set_sock_address(const address &s) { _svr_addr = s; }
@@ -136,8 +137,9 @@ class thread_server : public server, private pthread
 		int handle_event(socket_event *se);
 	};
 public:
-	thread_server() {
-	}
+	//thread_server(const string &ip = "", int port = 0) {
+	//	set_listener_address(address(ip, port));
+	//}
 
 	// each thread server handle their client event differently,
 	// the method was called at worker thread.
@@ -163,5 +165,8 @@ public:
 		return &_tp;
 	}
 
+	void set_work_thread_number(int n) { _tp.set_max_threads(n); }
+
 	int thread_func();
 };
+

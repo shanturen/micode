@@ -4,9 +4,11 @@
 #include <queue>
 using std::queue;
 
+#define MAX_CONNECTIONS 20480
+
 class event_pool
 {
-	static const int _number_of_slots = 2048;
+	static const int _number_of_slots = MAX_CONNECTIONS;
 	socket_event *_event_slots[_number_of_slots];
 	int _slot_use_marks[_number_of_slots];
 	int _mark_index_of_slot[_number_of_slots];
@@ -24,7 +26,7 @@ public:
 
 class event_manager_impl_epoll : public event_manager_impl
 {
-	static const int max_number_of_events = 2048;
+	static const int max_number_of_events = MAX_CONNECTIONS;
 	int _epfd;
 	event_pool _event_pool;
 	std::queue<socket_event *> _ready_events;

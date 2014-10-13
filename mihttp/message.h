@@ -150,7 +150,7 @@ public:
 	head &get_head() { return _head; }
 	void set_socket_event(socket_event *evt) { _sock_event = evt; evt->set_delayed(); }
 	socket_event *get_socket_event() { return _sock_event; }
-	server *get_server() {return _sock_event->get_event_manager()->get_server(); }
+	//server *get_server() {return _sock_event->get_event_manager()->get_server(); }
 	virtual int marshal(buffer &buf) = 0;
 	virtual int unmarshal(buffer &buf) = 0;
 	virtual int response(worker *wrk_env) = 0;

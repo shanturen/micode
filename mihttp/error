@@ -1,0 +1,4 @@
+g++ -I./ -I../log/include/ -O2 -g http_server.cpp -c -o http_server.o
+g++ -I./ -I../log/include/ -O2 -g thread_server.cpp -c -o thread_server.o
+for dir in ; do make -C $dir ; done
+ar cr libmihttp.a buffer.o event_manager.o event_manager_impl_epoll.o thread.o server.o socket.o socket_event.o message.o safe_time.o http_server.o thread_server.o 

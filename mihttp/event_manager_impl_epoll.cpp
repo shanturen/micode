@@ -3,6 +3,7 @@
 #include "log.h"
 #include "server.h"
 #include "timewrap.h"
+#include <errno.h>
 using namespace std;
 
 int event_manager_impl_epoll::wait_for_events()
@@ -29,20 +30,25 @@ int event_manager_impl_epoll::wait_for_events()
 			LOG_INFO_VA("find event from event-pool error, at slot %d\n", slot);
 	//		return 0;
 		}
+		
 		/*
+		if (evs[i].events & EPOLLRDHUP) {
+			LOG_INFO_VA("event %x EPOLLRDHUP\n", e);
+		}
 		if (evs[i].events & EPOLLIN) {
-			LOG_INFO_VA("EPOLLIN\n");
+			LOG_INFO_VA("event %x EPOLLIN\n", e);
 		}
 		if (evs[i].events & EPOLLOUT) {
-			LOG_INFO_VA("EPOLLOUT\n");
+			LOG_INFO_VA("event %x EPOLLOUT\n", e);
 		}
 		if (evs[i].events & EPOLLERR) {
-			LOG_INFO_VA("EPOLLERR\n");
+			LOG_INFO_VA("event %x EPOLLERR\n", e);
 		}
 		if (evs[i].events & EPOLLHUP) {
-			LOG_INFO_VA("EPOLLHUP\n");
+			LOG_INFO_VA("event %x EPOLLHUP\n", e);
 		}
 		*/
+		
 		/*
 		if (evs[i].events & EPOLLRDHUP) {
 			cout << "EPOLLRDHUP, " ;
@@ -50,7 +56,7 @@ int event_manager_impl_epoll::wait_for_events()
 			close(evs[i].data.fd);
 		}
 		*/
-		e->t1 = timee::now();
+		//e->t1 = timee::now();
 		_ready_events.push(e);
 	}
 	return n;
@@ -115,13 +121,13 @@ int event_manager_impl_epoll::register_event(socket_event &e)
 	if (ee.data.fd == -1)
 		return -1;
 	if (e.get_type() == socket_event::read)
-		ee.events |= EPOLLIN;
+		ee.events |= EPOLLIN | EPOLLRDHUP;
 	if (e.get_type() == socket_event::write)
 		ee.events |= EPOLLOUT;
 	if (e.get_type() == socket_event::error)
 		ee.events |= EPOLLERR;
 
-	//LOG_INFO_VA("epoll %d add sock %d at slot %d\n", _epfd, e.get_handle(), ee.data.fd);
+	//LOG_INFO_VA("epoll %d add %x sock %d at slot %d\n", _epfd, &e, e.get_handle(), ee.data.fd);
 	if (epoll_ctl(_epfd, op, e.get_handle(), &ee) != 0)
 		return -1;
 	_event_pool.insert(&e);
@@ -143,12 +149,12 @@ int event_manager_impl_epoll::unregister_event(socket_event &e)
 		ee.events &= (~EPOLLERR);
 	//LOG_INFO_VA("epoll %d del sock %d at slot %d\n", _epfd, e.get_handle(), slot);
 	if (epoll_ctl(_epfd, op, e.get_handle(), &ee) < 0) {
-		LOG_ERROR_VA("epoll_ctl failed\n");
+		LOG_ERROR_VA("epoll_ctl for event %x failed %d, %s\n", &e, errno, strerror(errno));
 		return -1;
 	}
 	_event_pool.remove(&e);
 	
-	//LOG_INFO_VA("delete event sock %d at slot %d\n", e.get_handle(), slot);
+	//LOG_INFO_VA("delete event %x sock %d at slot %d\n", &e, e.get_handle(), slot);
 	delete &e;
 	return 0;
 }

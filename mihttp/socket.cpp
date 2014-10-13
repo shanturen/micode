@@ -2,6 +2,7 @@
 #include "socket.h"
 #include "message.h"
 #include <iostream>
+#include "poll.h"
 #include "log.h"
 using namespace std;
 
@@ -24,15 +25,41 @@ static int tcp_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *excep
 
         return (val);
 }
+static int tcp_poll(struct pollfd *fds, int nfds, int msecs)
+{
+	int val;
+again:
+	val = poll(fds, nfds, msecs);
+	if (val < 0) {
+		if (errno == EINTR) {
+			goto again;
+		}
+		LOG_ERROR_VA("poll() call error:%d, %s\n", errno, strerror(errno));
+	}
+
+	if (val == 0) {
+		errno = ETIMEDOUT;
+	}
+
+	return val;
+}
+
 static int tcp_read(int fd, void *ptr, size_t nbytes, struct timeval *tv)
 {
 	int err;
+	/*
 	fd_set fs;
 
 	FD_ZERO(&fs);
 	FD_SET(fd, &fs);
 	
 	err = tcp_select(fd+1, &fs, NULL, NULL, tv);
+	*/
+	struct pollfd fds[1];
+	fds[0].fd = fd;
+	fds[0].events = POLLIN;
+	err = tcp_poll(fds, 1, tv->tv_sec * 1000 + tv->tv_usec / 1000);
+
 	if (err > 0) {
 		int ret =read(fd, ptr, nbytes);
 		return ret;
@@ -43,15 +70,34 @@ static int tcp_read(int fd, void *ptr, size_t nbytes, struct timeval *tv)
         }
 }
 
+/*
+static int tcp_read(int fd, void *ptr, size_t nbytes, struct timeval *tv)
+{
+	int err;
+	struct pollfd pfd;
+	pfd.fd = fd;
+	pfd.events = POLLIN;
+
+	err = poll
+
+}*/
+
 static ssize_t tcp_write(int fd, void *ptr, size_t nbytes, struct timeval *tv) 
 {
 	int err;
+	/*
 	fd_set fs;
 
 	FD_ZERO(&fs);
 	FD_SET(fd, &fs);
 
 	err = tcp_select(fd+1, NULL, &fs, NULL, tv);
+	*/
+	struct pollfd fds[1];
+	fds[0].fd = fd;
+	fds[0].events = POLLOUT;
+	err = tcp_poll(fds, 1, tv->tv_sec * 1000 + tv->tv_usec / 1000);
+
 
 	if(err < 0) 
 	{

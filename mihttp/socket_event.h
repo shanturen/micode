@@ -6,6 +6,7 @@
 #include "timewrap.h"
 
 class event_manager;
+class event_manager2;
 class event_manager_impl;
 class event_handler;
 class socket_event
@@ -42,6 +43,8 @@ public:
 	void unset_first() { _is_first_closure = false; }
 	bool is_first() { return _is_first_closure; }
 	event_manager *get_event_manager() { return _event_manager; }
+	event_manager2 *get_event_manager2() { return _event_manager2; }
+	void set_event_manager2(event_manager2 *m) { _event_manager2 = m; }
 	int unregister();
 
 	// for performance watch
@@ -58,6 +61,7 @@ private:
 	bool _is_first_closure;
 	event_handler *_event_handler;
 	event_manager *_event_manager;
+	event_manager2 *_event_manager2;
 };
 
 class event_handler

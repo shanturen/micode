@@ -9,7 +9,7 @@ class buffer
 	int _used_size;
 	int _begin;
 public:
-	buffer(int size = 0);
+	buffer(int size = 64);
 	buffer(const buffer &rhs);
 	buffer &operator= (const buffer &rhs);
 	~buffer() { if (_data) delete [] _data; }

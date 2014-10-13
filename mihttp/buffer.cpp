@@ -31,7 +31,10 @@ buffer::buffer(const buffer &rhs)
 
 buffer &buffer::operator= (const buffer &rhs)
 {
-	_data = 0;
+	if (_data) { // fuck the assignment constructor
+		delete[] _data;
+		_data = 0;
+	}
 	_used_size = rhs._used_size;
 	if (rhs._used_size > 0) {
 		_data = new unsigned char [rhs._used_size];

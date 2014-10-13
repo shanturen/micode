@@ -4,6 +4,7 @@
 #include <list>
 #include "mutex.h"
 #include "spinlock.h"
+#include <string.h>
 #include "event.h"
 using std::queue;
 using std::list;
@@ -18,19 +19,32 @@ class pthread
 		o->thread_func();
 	}
 	pthread_t _tid;
+	pthread_attr_t _attr;
 public:
 	static int this_thread_id() { return pthread_self(); }
-	pthread() { _tid = -1; }
+	pthread()
+	{
+		pthread_attr_init (&_attr);
+		pthread_attr_setdetachstate (&_attr, PTHREAD_CREATE_DETACHED);
+		_tid = -1;
+	}
+
 	virtual ~pthread()
 	{
 		if (_tid != -1) {
 			pthread_cancel(_tid);
 		}
+		pthread_attr_destroy (&_attr);
 	}
 	
 	int start()
 	{
-		return pthread_create(&_tid, NULL, _func, this);
+		//int ret = pthread_create(&_tid, &_attr, _func, this);
+		int ret = pthread_create(&_tid, 0, _func, this);
+		if (ret != 0) {
+			printf("%s\n", strerror(errno));
+		}
+		return ret;
 	}
 	int kill()
 	{
@@ -41,8 +55,10 @@ public:
 	}
 	int wait() 
 	{
-		pthread_join(_tid, 0);
-		_tid = -1;
+		if (_tid != -1) {
+			pthread_join(_tid, 0);
+			_tid = -1;
+		}
 	}
 	virtual int thread_func() = 0;
 	int get_thread_id() { return *reinterpret_cast<int *>(&_tid); }
