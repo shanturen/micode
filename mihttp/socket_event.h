@@ -6,7 +6,7 @@
 #include "timewrap.h"
 
 class event_manager;
-class event_manager2;
+class event_manager;
 class event_manager_impl;
 class event_handler;
 class socket_event
@@ -20,10 +20,8 @@ public:
 		_type = type;
 		_slot = -1;
 		_io_handle = -1;
-		_is_delayed = false;
 		_event_handler = 0;
 		_event_manager = 0;
-		_is_first_closure = true;
 	}
 	~socket_event(); 
 	void set_event_handler(event_handler *h) { _event_handler = h; }
@@ -34,17 +32,8 @@ public:
 	int set_slot(int slot) { _slot = slot; }
 	int get_type() { return _type; }
 	
-	void set_active_time(const timee &t) { _active_time = t; }
-	timee &get_active_time() { return _active_time; }
-	void set_event_manager(event_manager *mgr) { _event_manager = mgr; }
-	bool is_delayed() { return _is_delayed; }
-	void set_delayed() { _is_delayed = true; }
-	void unset_delayed() { _is_delayed = false; }
-	void unset_first() { _is_first_closure = false; }
-	bool is_first() { return _is_first_closure; }
 	event_manager *get_event_manager() { return _event_manager; }
-	event_manager2 *get_event_manager2() { return _event_manager2; }
-	void set_event_manager2(event_manager2 *m) { _event_manager2 = m; }
+	void set_event_manager(event_manager *m) { _event_manager = m; }
 	int unregister();
 
 	// for performance watch
@@ -56,12 +45,8 @@ private:
 	event_type_t _type;
 	int _slot;
 	int _io_handle;
-	timee _active_time;
-	bool _is_delayed;
-	bool _is_first_closure;
 	event_handler *_event_handler;
 	event_manager *_event_manager;
-	event_manager2 *_event_manager2;
 };
 
 class event_handler

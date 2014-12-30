@@ -21,8 +21,8 @@ int thread_server2::listener_handler::handle_event(socket_event *se)
 		client_se->set_handle(sock);
 		client_se->set_event_handler(new thread_server2::client_event_handler(_svr));
 		//if (_svr->add_client_socket_event(client_se) != 0) {
-		client_se->set_event_manager2(se->get_event_manager2());
-		if (se->get_event_manager2()->register_event(client_se) < 0) {
+		client_se->set_event_manager(se->get_event_manager());
+		if (se->get_event_manager()->register_event(client_se) < 0) {
 			delete client_se;
 			LOG_ERROR_VA("add client error, maybe event-pool full\n");
 		}
@@ -84,8 +84,8 @@ int thread_server2::thread_func()
 		socket_event *listener = new socket_event(socket_event::read);
 		listener->set_handle(svr_sock);
 		listener->set_event_handler(_listener_handler);
-		event_manager2 *m = worker->get_event_manager2();
-		listener->set_event_manager2(m);
+		event_manager *m = worker->get_event_manager();
+		listener->set_event_manager(m);
 		m->register_event(listener);
 
 		_work_threads.push_back(worker);

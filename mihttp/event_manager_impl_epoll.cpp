@@ -76,7 +76,7 @@ event_pool::~event_pool()
 {
 	while(_number_of_used_slots != 0) {
 		socket_event *e = _event_slots[_slot_use_marks[0]];
-		e->get_event_manager()->unregister_event(*e);
+		e->get_event_manager()->unregister_event(e);
 	}
 }
 

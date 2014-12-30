@@ -4,7 +4,11 @@
 #include <queue>
 using std::queue;
 
-#define MAX_CONNECTIONS 20480
+#define MAX_CONNECTIONS 65536
+
+#if !defined(EPOLLRDHUP) 
+#define EPOLLRDHUP 0x2000
+#endif
 
 class event_pool
 {

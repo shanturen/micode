@@ -1,10 +1,10 @@
-target = mihttpsvr
-srcs = main.cpp
+target = service
+srcs = service.cpp
 libs = 
-subdirs= net
+subdirs= mihttp
 INCLUDE= -I./ 
 LIBRARY= -lpthread
-STATIC_LIB= net/libdce.a
+STATIC_LIB= mihttp/libmihttp.a
 CPPFLAGS+= -O2
 all : $(target)
 

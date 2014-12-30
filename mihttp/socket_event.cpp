@@ -19,5 +19,5 @@ socket_event::~socket_event()
 
 int socket_event::unregister()
 {
-	return _event_manager->unregister_event(*this);
+	return _event_manager->unregister_event(this);
 }

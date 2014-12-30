@@ -19,12 +19,10 @@ int http_server::handle_client_event(socket_event *se)
 	http_request req;
 	
 	if (!http_request::parse_request(buf, req)) {
-		//printf("bad http request format\n");
 		return -1;
 	}
 
 	if (!req.parse_form()) {
-		//printf("http request parse form failed\n");
 		return -1;
 	}
 
@@ -54,9 +52,8 @@ int http_server::handle_client_event(socket_event *se)
 
 bool http_request::read_request_buffer(socket_event *se, buffer &buf)
 {
-	int ret = tcp_read_ms_once(se->get_handle(), buf, 4096, 5);
-	//printf("read %d of 4096\n", ret);
-	return ret > 0;
+	//int ret = tcp_read_ms_once(se->get_handle(), buf, http_request::max_request_size, 5);
+	//return ret > 0;
 
 	// can't stand the low performance
 	bool header_finished = false;
@@ -189,7 +186,7 @@ static inline bool drop_crlf(buffer &buf)
 int http_request::parse_request_line(buffer &buf, http_request &req)
 {
 	//printf("buf:%s\n", (char *)buf.get_data_buf());
-	char cbuf[2048];
+	char cbuf[http_request::max_request_size];
 	char sp = ' ';
 	int buf_len = buf.get_size();
 	int l = 0;
@@ -208,8 +205,8 @@ int http_request::parse_request_line(buffer &buf, http_request &req)
 	// uri
 	skip_sp(buf, ' ');
 	p = (char *)buf.get_data_buf();
-	for (l = 0; *p++ != sp && l != buf.get_size() && l != 2048; l++);
-	if (l == 2048 || l == buf.get_size()) {
+	for (l = 0; *p++ != sp && l != buf.get_size() && l != http_request::max_request_size; l++);
+	if (l == http_request::max_request_size|| l == buf.get_size()) {
 		return -1;
 	}
 	buf.drain_data(cbuf, l);
@@ -327,7 +324,7 @@ bool http_request::parse_form()
 {
 	const char *data = 0;
 	int size = 0;
-	char buf[4096];
+	char buf[http_request::max_request_size];
 	string key, value;
 	if (this->method == "GET") {
 		if (this->query.empty())

@@ -21,6 +21,8 @@ public:
 	string header(const string &name) const;
 	string form(const string &key) const;
 
+	static const int max_request_size = 8192;
+
 private:
 	std::map<std::string, std::string> _headers;
 	std::map<std::string, std::string> _form_datas;

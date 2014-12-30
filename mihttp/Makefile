@@ -4,7 +4,7 @@ libs =
 subdirs= 
 INCLUDE= -I./ -I../log/include/
 LIBRARY= -lpthread 
-CPPFLAGS+= -O2 -g -fPIC -static-libgcc
+CPPFLAGS+= -g -fPIC -static-libgcc
 all : $(target)
 
 

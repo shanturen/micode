@@ -151,7 +151,7 @@ int tcp_read_ms(int fd, void *ptr1, int nbytes, int msecs)
 		nread = tcp_read(fd, ptr, nleft, tp);
 		if(nread < 0)
 		{
-			printf("read <= 0 %d\n", nread);
+			//printf("read <= 0 %d\n", nread);
 			if((nread == -1) && (errno == EINTR))
 			{
 				goto again;
@@ -177,7 +177,7 @@ int tcp_read_ms(int fd, void *ptr1, int nbytes, int msecs)
 		}
 		else 
 		{
-			printf("read > 0 %d\n", nread);
+			//printf("read > 0 %d\n", nread);
 			ptr += nread;
 			nleft -= nread;
 		}

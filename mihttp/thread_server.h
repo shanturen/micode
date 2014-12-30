@@ -15,16 +15,16 @@ public:
 
 		// each work thread has their own event_manager
 		// all event managers share one same event: the listenner
-		event_manager2 _event_manager; 
+		event_manager _event_manager; 
 	public:
 		work_thread() : _event_manager(new event_manager_impl_epoll()) {}
-		event_manager2 *get_event_manager2() { return &_event_manager; }
+		event_manager *get_event_manager() { return &_event_manager; }
 		int thread_func();
 	};
 
 	class listener_handler : public event_handler {
 		thread_server2 *_svr;
-		event_manager2 *_event_manager;
+		event_manager *_event_manager;
 	public:
 		void set_server(thread_server2 *svr) { _svr = svr; }
 		int handle_event(socket_event *);
